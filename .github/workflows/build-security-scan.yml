@@ -86,3 +86,23 @@ jobs:
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/hello-world:${{ github.sha }}
           docker push ${{ secrets.DOCKER_USERNAME }}/hello-world:latest
+  deploy:
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login to EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker pull ${{ secrets.DOCKER_USERNAME }}/hello-world:latest
+
+            docker stop container1 || true
+            docker rm container1 || true
+
+            docker run -d \
+              --name container1 \
+              -p 8080:8080 \
+              ${{ secrets.DOCKER_USERNAME }}/hello-world:latest
